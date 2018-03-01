@@ -79,8 +79,6 @@ class ArticleSpider(CrawlSpider):
         i['page_url'] = response.url
         i['canonical'] = self.stringify(response.xpath('//link[@rel="canonical"]/@href'))
         i['journal_url'] = '{uri.scheme}://{uri.netloc}'.format(uri=urlparse(response.url))
-        i['doi'] = self.stringify(response.xpath('//meta[@name="DC.Identifier"]/@content'))
-        i['pubmed_id'] = self.stringify(response.xpath('//meta[@name="citation_pmid"]/@content'))
         i['article_full_url'] = self.stringify(response.xpath('//meta[@name="citation_full_html_url"]/@content'))
         i['article_full_text_url'] = self.stringify(response.xpath('//meta[@name="citation_full_html_url"]/@content'))
         i['article_pdf_url'] = self.stringify(response.xpath('//meta[@name="citation_pdf_url"]/@content'))
@@ -100,6 +98,19 @@ class ArticleSpider(CrawlSpider):
         i['full_available_text'] = ''.join(response.xpath('//div[@class="section"]/p').extract())
         i['keywords'] = response.xpath('//ul[@class="kwd-group"]/li/a/text()').extract()
         i['references'] = self.cleanRef(response.xpath('//div[@class="section ref-list"]/ol/li/div'))
+        pid = self.stringify(response.xpath('//meta[@name="citation_pmid"]/@content'))
+        vol = self.stringify(response.xpath('//meta[@name="citation_volume"]/@content'))
+        iss = self.stringify(response.xpath('//meta[@name="citation_issue"]/@content'))
+        doi = self.stringify(response.xpath('//meta[@name="DC.Identifier"]/@content'))
+        if len(doi) > 1 and doi != '':
+            i['doi'] = doi
+        if str.isdigit(pid):
+            i['pubmed_id'] = int(pid)
+        if str.isdigit(vol):
+            i['volume'] = int(vol)
+        if str.isdigit(iss):
+            i['issue'] = int(iss)
+
         return i
 
     def cleanRef(self, strings):
@@ -109,13 +120,15 @@ class ArticleSpider(CrawlSpider):
             publication_name = self.stringify(s.xpath('.//div/cite/span[@class="cit-publ-name"]/text()'))
             publication_location = self.stringify(s.xpath('.//div/cite/span[@class="cit-pub-loc"]/text()'))
             citation_source = self.stringify(s.xpath('.//div/cite/span[@class="cit-source"]/text()'))
-            pub_date = self.stringify(s.xpath('.//div/cite/span[@class="cit-pub-date"]/text()'))
-            volume = self.stringify(s.xpath('.//div/cite/span[@class="cit-vol"]/text()'))
-            page = self.stringify(s.xpath('.//div/cite/span[@class="cit-fpage"]/text()'))
+            date = self.stringify(s.xpath('.//div/cite/span[@class="cit-pub-date"]/text()'))
             journal = self.stringify(s.xpath('.//div/cite/abbr/text()'))
             doi = self.stringify(s.xpath('.//@data-doi'))
             links = self.cleanUrls(s.xpath('.//div/a'))
-            pubmed_id = self.setPubmedId(links)
+            pub_date = self.stringify(s.xpath('.//div/cite/span[@class="cit-pub-date"]/text()'))
+            pmed = self.setPubmedId(links)
+            fp = self.stringify(s.xpath('.//div/cite/span[@class="cit-fpage"]/text()'))
+            lp = self.stringify(s.xpath('.//div/cite/span[@class="cit-fpage"]/text()'))
+            v = self.stringify(s.xpath('.//div/cite/span[@class="cit-vol"]/text()'))
 
             item = {
                 'title': article_title,
@@ -124,12 +137,26 @@ class ArticleSpider(CrawlSpider):
                 'citation_source': citation_source,
                 'journal': journal,
                 'year': pub_date,
-                'volume': volume,
-                'page': page,
+                'page': fp + '–' + lp,
                 'doi': doi,
-                'pubmed_id': pubmed_id,
                 'links': links
             }
+
+            if str.isdigit(date):
+                item['pub_date'] = int(date)
+
+            if str.isdigit(fp):
+                item['first_page'] = int(fp)
+
+            if str.isdigit(lp):
+                item['last_page'] = int(lp)
+
+            if str.isdigit(v):
+                item['volume'] = int(v)
+
+            if str.isdigit(pmed):
+                item['pubmed_id'] = int(pmed)
+
             ref.append(dict((k, v) for k, v in item.items() if v))
 
         return ref
@@ -139,7 +166,7 @@ class ArticleSpider(CrawlSpider):
         for s in strings:
             raw = s.xpath('.//@href').extract()[0]
             text = self.stringify(s.xpath('.//text()'))
-            
+
             if '{openurl}?' not in raw:
 
                 if 'PubMed' or 'Web of Science' in raw:

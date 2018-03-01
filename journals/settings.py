@@ -15,7 +15,7 @@ SPIDER_MODULES = ['journals.spiders']
 NEWSPIDER_MODULE = 'journals.spiders'
 
 MONGO_URI = 'mongodb://127.0.0.1:27017'
-MONGO_DATABASE = 'scraper'
+MONGO_DATABASE = 'ers-api'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
