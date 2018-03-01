@@ -35,30 +35,43 @@ class ArticleSpider(CrawlSpider):
 
     rules = (
         Rule(LinkExtractor(allow=('.*', ), deny=(
-            'by/section/Cell',
-            'external-ref?',
-            '%7Bopenurl%7D?',
-            '{openurl}?',
-            'user/login',
-            'by/section/',
-            'section',
-            'lookup'
-            'lens/',
-            'highwire/citation/',
-            'panels_ajax_tab/',
-            'ijlink'
-            '\.pdf',
-            '\.zip',
-            '\.full.print',
-            '\.print',
-            '\.full',
-            '\.full.pdf',
-            '\.figures-only',
-            '\.article-info',
-            '\.abstract',
-            '\.full.txt',
-            '\..full-text.print',
-            'expansion?')), callback='parse_item', follow=True),
+            r'\/by\/section\/Cell',
+            r'external-ref?',
+            r'%7Bopenurl%7D?',
+            r'{openurl}',
+            r'user\/login',
+            r'by\/section',
+            r'lookup',
+            r'lookup\/google-scholar',
+            r'lookup\/ijlink',
+            r'lens\/',
+            r'keyword',
+            r'panels_ajax_tab',
+            r'\.pdf',
+            r'\.zip',
+            r'\.full.print',
+            r'\.print',
+            r'\.DC1',
+            r'\.DC2',
+            r'\.DC3',
+            r'\.DC4',
+            r'\.DC5',
+            r'\.DC6',
+            r'\.full',
+            r'\.full\.pdf',
+            r'\.figures-only',
+            r'\.article-info',
+            r'\.abstract',
+            r'\.full\.txt',
+            r'\.full-text\.print',
+            r'\.twitter',
+            r'highwire\/payment',
+            r'highwire\/citation',
+            r'highwire\/powerpoint',
+            r'powerpoint',
+            r'login',
+            r'logout',
+            r'expansion', )), callback='parse_item', follow=True),
     )
 
     def parse_item(self, response):
@@ -85,6 +98,7 @@ class ArticleSpider(CrawlSpider):
         i['abstract'] = self.stringify(response.xpath('//meta[@name="og:description"]/@content'))
         i['short_abstract'] = self.stringify(response.xpath('//meta[@name="citation_abstract" and @scheme="short"]/@content'))
         i['full_available_text'] = ''.join(response.xpath('//div[@class="section"]/p').extract())
+        i['keywords'] = response.xpath('//ul[@class="kwd-group"]/li/a/text()').extract()
         i['references'] = self.cleanRef(response.xpath('//div[@class="section ref-list"]/ol/li/div'))
         return i
 
@@ -160,12 +174,14 @@ class ArticleSpider(CrawlSpider):
         institutions = []
         for l in set(listOfStrings):
             i = list(map(str.strip, l.split(',')))
-            # @TODO add geolocation data 
-            institutions.append({
-                'raw': l,
-                'country': i[-1],
-                'city': i[-2],
-                'address': ', '.join(i[1:-2]),
-                'head': i[0],
-            })
+            # @TODO add geolocation data
+            if len(i) > 1:
+                tmp = {
+                    'raw': l,
+                    'country': i[-1],
+                    'city': i[-2],
+                    'address': ', '.join(i[1:-2]),
+                    'head': i[0],
+                }
+                institutions.append(tmp)
         return institutions

@@ -32,6 +32,7 @@ class JournalsItem(scrapy.Item):
     article_type = scrapy.Field()
     publisher = scrapy.Field()
     pisa = scrapy.Field()
+    keywords = scrapy.Field()
     short_abstract = scrapy.Field()
     full_available_text = scrapy.Field()
     references = scrapy.Field()
