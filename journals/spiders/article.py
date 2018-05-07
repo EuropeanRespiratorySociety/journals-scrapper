@@ -3,7 +3,10 @@ import scrapy
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from journals.items import JournalsItem
+from datetime import datetime
 
+import json
+import os
 from urllib.parse import urlparse
 from urllib.parse import parse_qsl
 
@@ -12,16 +15,14 @@ from urllib.parse import parse_qsl
 # http://breathe.ersjournals.com/sitemap.xml
 # http://openres.ersjournals.com/sitemap.xml
 
+fileDir = os.path.dirname(os.path.realpath('__file__'))
+with open(os.path.join(fileDir, 'config.json')) as f:
+    config = json.load(f)
+
 
 class ArticleSpider(CrawlSpider):
     name = 'article'
-    allowed_domains = [
-        'erj.ersjournals.com',
-        'openres.ersjournals.com',
-        'err.ersjournals.com',
-        'www.ersjournals.com',
-        'breathe.ersjournals.com'
-    ]
+    allowed_domains = config.domains
     start_urls = [
         'http://erj.ersjournals.com/content/by/year/1988',
         'http://erj.ersjournals.com/content/by/year/2018',
@@ -77,8 +78,9 @@ class ArticleSpider(CrawlSpider):
     def parse_item(self, response):
         i = {}
         i['page_url'] = response.url
-        i['canonical'] = self.stringify(response.xpath('//link[@rel="canonical"]/@href'))
+        canonical = self.stringify(response.xpath('//link[@rel="canonical"]/@href'))
         i['journal_url'] = '{uri.scheme}://{uri.netloc}'.format(uri=urlparse(response.url))
+        i['journal_name'] = self.stringify(response.xpath('//meta[@name="citation_journal_title"]/@content'))
         i['article_full_url'] = self.stringify(response.xpath('//meta[@name="citation_full_html_url"]/@content'))
         i['article_full_text_url'] = self.stringify(response.xpath('//meta[@name="citation_full_html_url"]/@content'))
         i['article_pdf_url'] = self.stringify(response.xpath('//meta[@name="citation_pdf_url"]/@content'))
@@ -89,7 +91,6 @@ class ArticleSpider(CrawlSpider):
         i['article_type'] = self.stringify(response.xpath('//meta[@name="citation_article_type"]/@content'))
         i['related_articles'] = response.xpath('//meta[@name="DC.Relation"]/@content').extract()
         i['access'] = self.stringify(response.xpath('//meta[@name="DC.AccessRights"]/@content'))
-        i['publisher'] = self.stringify(response.xpath('//meta[@name="DC.Publisher"]/@content'))
         i['pisa'] = self.stringify(response.xpath('//meta[@name="HW.pisa"]/@content'))
         i['subjects'] = self.cleanUrls(response.xpath('//a[@class="highlight"]'))
         i['title'] = self.stringify(response.xpath('//meta[@name="citation_title"]/@content'))
@@ -102,12 +103,24 @@ class ArticleSpider(CrawlSpider):
         vol = self.stringify(response.xpath('//meta[@name="citation_volume"]/@content'))
         iss = self.stringify(response.xpath('//meta[@name="citation_issue"]/@content'))
         doi = self.stringify(response.xpath('//meta[@name="DC.Identifier"]/@content'))
+        publisher = self.stringify(response.xpath('//meta[@name="DC.Publisher"]/@content'))
+        i['scrapedOn'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+        if '/early/' not in canonical and len(canonical) > 0:
+            i['canonical'] = canonical
+
+        if publisher != '':
+            i['publisher'] = publisher
+
         if len(doi) > 1 and doi != '':
             i['doi'] = doi
+
         if str.isdigit(pid):
             i['pubmed_id'] = int(pid)
+
         if str.isdigit(vol):
             i['volume'] = int(vol)
+
         if str.isdigit(iss):
             i['issue'] = int(iss)
 
@@ -124,7 +137,6 @@ class ArticleSpider(CrawlSpider):
             journal = self.stringify(s.xpath('.//div/cite/abbr/text()'))
             doi = self.stringify(s.xpath('.//@data-doi'))
             links = self.cleanUrls(s.xpath('.//div/a'))
-            pub_date = self.stringify(s.xpath('.//div/cite/span[@class="cit-pub-date"]/text()'))
             pmed = self.setPubmedId(links)
             fp = self.stringify(s.xpath('.//div/cite/span[@class="cit-fpage"]/text()'))
             lp = self.stringify(s.xpath('.//div/cite/span[@class="cit-fpage"]/text()'))
@@ -136,14 +148,17 @@ class ArticleSpider(CrawlSpider):
                 'publication_location': publication_location,
                 'citation_source': citation_source,
                 'journal': journal,
-                'year': pub_date,
-                'page': fp + '–' + lp,
-                'doi': doi,
                 'links': links
             }
 
+            if len(doi) > 0:
+                item['doi'] = doi
+
+            if len(fp) > 0 or len(lp) > 0:
+                item['page'] = fp + '–' + lp,
+
             if str.isdigit(date):
-                item['pub_date'] = int(date)
+                item['year'] = int(date)
 
             if str.isdigit(fp):
                 item['first_page'] = int(fp)
