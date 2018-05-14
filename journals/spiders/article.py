@@ -22,7 +22,7 @@ with open(os.path.join(fileDir, 'config.json')) as f:
 
 class ArticleSpider(CrawlSpider):
     name = 'article'
-    allowed_domains = config.domains
+    allowed_domains = config['domains']
     start_urls = [
         'http://erj.ersjournals.com/content/by/year/1988',
         'http://erj.ersjournals.com/content/by/year/2018',

@@ -37,7 +37,7 @@ class JournalsPipeline(object):
         self.client.close()
 
     def process_item(self, item, spider):
-        if config.useMongo:
+        if config['useMongo']:
             if 'canonical' in item:
                 self.upsert('canonical', item)
                 return item
@@ -45,7 +45,7 @@ class JournalsPipeline(object):
                 self.upsert('pubmed_id', item)
                 return item
 
-        if config.useHttp:
+        if config['useHttp']:
             r = self.httpUpsert(item)
             print('Upsert operation: ', r.json())
 

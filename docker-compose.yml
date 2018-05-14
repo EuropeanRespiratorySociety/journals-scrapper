@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  scraper:
+    image: ers-scraper:latest
+    container_name: ers-journal-scraper
+    volumes:
+      - ./data:/code/data
