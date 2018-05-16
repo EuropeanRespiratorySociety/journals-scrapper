@@ -28,7 +28,7 @@ class JournalsItem(scrapy.Item):
     article_pdf_url = scrapy.Field()
     authors_emails = scrapy.Field()
     authors_institutions = scrapy.Field()
-    publicatin_date = scrapy.Field()
+    publication_date = scrapy.Field()
     article_type = scrapy.Field()
     publisher = scrapy.Field()
     pisa = scrapy.Field()
