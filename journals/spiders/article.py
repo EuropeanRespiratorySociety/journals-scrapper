@@ -25,13 +25,13 @@ class ArticleSpider(CrawlSpider):
     allowed_domains = config['domains']
     start_urls = [
         'http://erj.ersjournals.com/content/by/year/1988',
-        'http://erj.ersjournals.com/content/by/year/2018',
+        'http://erj.ersjournals.com/content/by/year/2020',
         'http://breathe.ersjournals.com/content/by/year/2004'
-        'http://breathe.ersjournals.com/content/by/year/2018'
+        'http://breathe.ersjournals.com/content/by/year/2020'
         'http://err.ersjournals.com/content/by/year/2005',
-        'http://err.ersjournals.com/content/by/year/2018',
+        'http://err.ersjournals.com/content/by/year/2020',
         'http://openres.ersjournals.com/content/by/year/2015',
-        'http://openres.ersjournals.com/content/by/year/2018'
+        'http://openres.ersjournals.com/content/by/year/2020'
     ]
 
     rules = (
